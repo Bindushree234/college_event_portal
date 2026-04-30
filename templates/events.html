@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Events - College Event Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl font-bold text-blue-600">🎓 College Event Portal</span>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="/" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md">Dashboard</a>
+                    <a href="/events" class="text-blue-600 bg-blue-50 px-3 py-2 rounded-md">Events</a>
+                    <a href="/register" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md">Register</a>
+                    <a href="/analytics" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md">Analytics</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold">📅 All Events</h1>
+            <button onclick="showAddEventForm()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">+ Add Event</button>
+        </div>
+
+        <div id="eventsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="col-span-full text-center py-12">Loading events...</div>
+        </div>
+    </main>
+
+    <div id="eventModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full">
+            <h2 class="text-2xl font-bold mb-4">Add New Event</h2>
+            <form id="eventForm">
+                <input type="text" id="eventName" placeholder="Event Name" class="w-full border p-2 mb-3 rounded" required>
+                <input type="text" id="department" placeholder="Department" class="w-full border p-2 mb-3 rounded" required>
+                <select id="category" class="w-full border p-2 mb-3 rounded">
+                    <option value="Technical">Technical</option>
+                    <option value="Cultural">Cultural</option>
+                    <option value="Sports">Sports</option>
+                </select>
+                <select id="eventType" class="w-full border p-2 mb-3 rounded">
+                    <option value="Competition">Competition</option>
+                    <option value="Non-Competition">Non-Competition</option>
+                </select>
+                <input type="text" id="venue" placeholder="Venue" class="w-full border p-2 mb-3 rounded" required>
+                <input type="date" id="eventDate" class="w-full border p-2 mb-3 rounded" required>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        async function loadEvents() {
+            const response = await fetch('/api/events');
+            const events = await response.json();
+            console.log('Events:', events);
+            
+            if (events.error) {
+                document.getElementById('eventsList').innerHTML = `<div class="col-span-full text-center text-red-600">${events.error}</div>`;
+                return;
+            }
+            
+            if (events.length === 0) {
+                document.getElementById('eventsList').innerHTML = '<div class="col-span-full text-center">No events found</div>';
+                return;
+            }
+            
+            const html = events.map(e => `
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-xl font-bold text-blue-600">${e.Event_Name || e.event_name || 'N/A'}</h3>
+                    <p class="text-gray-600 mt-2">📅 ${e.Event_Date || e.event_date || 'N/A'} | 📍 ${e.Venue || e.venue || 'N/A'}</p>
+                    <p class="text-gray-600">🏷️ ${e.Category || e.category || 'N/A'} | ${e.Event_Type || e.event_type || 'N/A'}</p>
+                    <p class="text-gray-600">🏛️ ${e.Department || e.department || 'N/A'}</p>
+                    <p class="text-gray-600 mt-2">👥 Participants: ${e.participant_count || 0}</p>
+                </div>
+            `).join('');
+            document.getElementById('eventsList').innerHTML = html;
+        }
+        
+        function showAddEventForm() {
+            document.getElementById('eventModal').classList.remove('hidden');
+            document.getElementById('eventModal').classList.add('flex');
+        }
+        
+        function closeModal() {
+            document.getElementById('eventModal').classList.add('hidden');
+            document.getElementById('eventModal').classList.remove('flex');
+            document.getElementById('eventForm').reset();
+        }
+        
+        document.getElementById('eventForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const eventData = {
+                event_name: document.getElementById('eventName').value,
+                department: document.getElementById('department').value,
+                category: document.getElementById('category').value,
+                event_type: document.getElementById('eventType').value,
+                venue: document.getElementById('venue').value,
+                event_date: document.getElementById('eventDate').value
+            };
+            
+            const response = await fetch('/api/events', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(eventData)
+            });
+            
+            if (response.ok) {
+                closeModal();
+                loadEvents();
+                alert('Event added successfully!');
+            } else {
+                alert('Error adding event');
+            }
+        });
+        
+        loadEvents();
+    </script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College Event Portal - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl font-bold text-blue-600">🎓 College Event Portal</span>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="/" class="text-blue-600 bg-blue-50 px-3 py-2 rounded-md">Dashboard</a>
+                    <a href="/events" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md">Events</a>
+                    <a href="/register" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md">Register</a>
+                    <a href="/analytics" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md">Analytics</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8">Dashboard</h1>
+        
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" id="stats">
+            <div class="bg-white rounded-lg shadow p-6 text-center">
+                <div class="text-2xl text-gray-400">Loading...</div>
+            </div>
+        </div>
+
+        <!-- Feature 1: Participants Per Event -->
+        <div class="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 class="text-xl font-bold mb-4">👥 Participants Per Event</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Event Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Participants</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Popularity</th>
+                        </tr>
+                    </thead>
+                    <tbody id="participantsTable" class="divide-y divide-gray-200">
+                        <tr><td colspan="3" class="text-center py-4">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Feature 2: Average Scores Per Event -->
+        <div class="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 class="text-xl font-bold mb-4">📊 Average Scores Per Event (Competitions)</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Event Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Score</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Highest</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lowest</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scoresTable" class="divide-y divide-gray-200">
+                        <tr><td colspan="4" class="text-center py-4">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold mb-4">Events by Department</h2>
+                <canvas id="deptChart" height="250"></canvas>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold mb-4">Internal vs External</h2>
+                <canvas id="typeChart" height="250"></canvas>
+            </div>
+        </div>
+
+        <!-- Winners Table -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-bold mb-4">🏆 Recent Winners</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50">
+                        <tr><th class="px-6 py-3 text-left">Event</th><th class="px-6 py-3 text-left">Winner</th><th class="px-6 py-3 text-left">Score</th></tr>
+                    </thead>
+                    <tbody id="winnersTable" class="divide-y divide-gray-200">
+                        <tr><td colspan="3" class="text-center py-4">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function loadDashboard() {
+            try {
+                const statsRes = await fetch('/api/stats');
+                const stats = await statsRes.json();
+                
+                document.getElementById('stats').innerHTML = `
+                    <div class="bg-white rounded-lg shadow p-6 text-center"><div class="text-3xl font-bold text-blue-600">${stats.total_events || 0}</div><div class="text-gray-600">Total Events</div></div>
+                    <div class="bg-white rounded-lg shadow p-6 text-center"><div class="text-3xl font-bold text-green-600">${stats.total_participants || 0}</div><div class="text-gray-600">Total Participants</div></div>
+                    <div class="bg-white rounded-lg shadow p-6 text-center"><div class="text-3xl font-bold text-purple-600">${stats.internal_count || 0}</div><div class="text-gray-600">Internal</div></div>
+                    <div class="bg-white rounded-lg shadow p-6 text-center"><div class="text-3xl font-bold text-orange-600">${stats.external_count || 0}</div><div class="text-gray-600">External</div></div>
+                `;
+
+                const participantsRes = await fetch('/api/event-participants');
+                const participants = await participantsRes.json();
+                if (participants && !participants.error) {
+                    const maxP = Math.max(...participants.map(p => p.participants));
+                    document.getElementById('participantsTable').innerHTML = participants.map(p => `
+                        <tr><td class="px-6 py-4 font-semibold">${p.event_name}</td><td class="px-6 py-4">${p.participants}</td><td class="px-6 py-4"><div class="w-full bg-gray-200 rounded-full h-2.5"><div class="bg-blue-600 h-2.5 rounded-full" style="width: ${(p.participants/maxP)*100}%"></div></div></td></tr>
+                    `).join('');
+                }
+
+                const scoresRes = await fetch('/api/average-scores');
+                const scores = await scoresRes.json();
+                if (scores && !scores.error) {
+                    document.getElementById('scoresTable').innerHTML = scores.map(s => `
+                        <tr><td class="px-6 py-4 font-semibold">${s.event_name}</td><td class="px-6 py-4"><span class="px-2 py-1 bg-green-100 text-green-800 rounded">${s.avg_score}</span></td><td class="px-6 py-4 text-green-600">${s.highest_score}</td><td class="px-6 py-4 text-orange-600">${s.lowest_score}</td></tr>
+                    `).join('');
+                }
+
+                if (stats.dept_events && Object.keys(stats.dept_events).length > 0) {
+                    new Chart(document.getElementById('deptChart'), {
+                        type: 'bar',
+                        data: { labels: Object.keys(stats.dept_events), datasets: [{ label: 'Events', data: Object.values(stats.dept_events), backgroundColor: '#3b82f6' }] }
+                    });
+                }
+
+                new Chart(document.getElementById('typeChart'), {
+                    type: 'doughnut',
+                    data: { labels: ['Internal', 'External'], datasets: [{ data: [stats.internal_count || 0, stats.external_count || 0], backgroundColor: ['#10b981', '#f59e0b'] }] }
+                });
+
+                const winnersRes = await fetch('/api/winners');
+                const winners = await winnersRes.json();
+                if (winners.length > 0 && !winners.error) {
+                    document.getElementById('winnersTable').innerHTML = winners.map(w => `<tr><td class="px-6 py-4">${w.event_name}</td><td class="px-6 py-4 font-semibold">${w.name}</td><td class="px-6 py-4">${w.score}</td></tr>`).join('');
+                }
+            } catch(e) { console.error(e); }
+        }
+        loadDashboard();
+    </script>
+</body>
+</html>

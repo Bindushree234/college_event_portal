@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - College Event Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center"><span class="text-2xl font-bold text-blue-600">🎓 College Event Portal</span></div>
+                <div class="flex space-x-4">
+                    <a href="/" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md">Dashboard</a>
+                    <a href="/events" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md">Events</a>
+                    <a href="/register" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md">Register</a>
+                    <a href="/analytics" class="text-blue-600 bg-blue-50 px-3 py-2 rounded-md">Analytics</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8">📊 Analytics Dashboard</h1>
+        
+        <!-- Feature 3: Feedback Ratings -->
+        <div class="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 class="text-xl font-bold mb-4">⭐ Event Feedback Ratings</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left">Event Name</th>
+                            <th class="px-6 py-3 text-left">Avg Rating</th>
+                            <th class="px-6 py-3 text-left">Total Feedback</th>
+                            <th class="px-6 py-3 text-left">Highest Rating</th>
+                            <th class="px-6 py-3 text-left">Lowest Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ratingsTable" class="divide-y divide-gray-200">
+                        <tr><td colspan="5" class="text-center py-4">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold mb-4">📈 Ratings Chart</h2>
+                <canvas id="ratingsChart" height="250"></canvas>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold mb-4">🏆 Top Performers (Most Wins)</h2>
+                <div id="topPerformers" class="space-y-3"><p class="text-gray-500">Loading...</p></div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-bold mb-4">📈 Department Performance</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left">Department</th><th class="px-6 py-3 text-left">Events</th><th class="px-6 py-3 text-left">Participants</th></tr></thead>
+                    <tbody id="deptPerformance" class="divide-y divide-gray-200"><tr><td colspan="3" class="text-center py-4">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function loadAnalytics() {
+            try {
+                const ratingsRes = await fetch('/api/ratings-summary');
+                const ratings = await ratingsRes.json();
+                if (ratings && !ratings.error) {
+                    document.getElementById('ratingsTable').innerHTML = ratings.map(r => `
+                        <tr><td class="px-6 py-4 font-semibold">${r.event_name}</td>
+                        <td class="px-6 py-4"><span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded">${r.avg_rating} / 5.0</span></td>
+                        <td class="px-6 py-4">${r.total_feedback}</td>
+                        <td class="px-6 py-4 text-green-600">${r.highest_rating}</td>
+                        <td class="px-6 py-4 text-orange-600">${r.lowest_rating}</td></tr>
+                    `).join('');
+                    
+                    new Chart(document.getElementById('ratingsChart'), {
+                        type: 'bar',
+                        data: { labels: ratings.map(r => r.event_name), datasets: [{ label: 'Average Rating', data: ratings.map(r => r.avg_rating), backgroundColor: '#8b5cf6' }] },
+                        options: { scales: { y: { beginAtZero: true, max: 5 } } }
+                    });
+                }
+
+                const performersRes = await fetch('/api/top-performers');
+                const performers = await performersRes.json();
+                if (performers && !performers.error) {
+                    document.getElementById('topPerformers').innerHTML = performers.map(p => `
+                        <div class="flex justify-between items-center border-b pb-2"><div><span class="font-semibold">${p.name}</span><span class="text-sm text-gray-500 ml-2">${p.department}</span></div><div class="text-green-600 font-bold">🏆 ${p.wins} win${p.wins !== 1 ? 's' : ''}</div></div>
+                    `).join('');
+                }
+
+                const eventsRes = await fetch('/api/events');
+                const events = await eventsRes.json();
+                const deptStats = {};
+                events.forEach(e => { const d = e.Department || e.department || 'Other'; if (!deptStats[d]) deptStats[d] = { events: 0, participants: 0 }; deptStats[d].events++; deptStats[d].participants += e.participant_count || 0; });
+                document.getElementById('deptPerformance').innerHTML = Object.entries(deptStats).map(([d, data]) => `<tr><td class="px-6 py-4 font-semibold">${d}</td><td class="px-6 py-4">${data.events}</td><td class="px-6 py-4">${data.participants}</td></tr>`).join('');
+            } catch(e) { console.error(e); }
+        }
+        loadAnalytics();
+    </script>
+</body>
+</html>
